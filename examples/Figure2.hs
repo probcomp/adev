@@ -3,7 +3,7 @@ module Main (main) where
 import Numeric.ADEV.Class
 import Numeric.ADEV.Diff (diff)
 import Numeric.ADEV.Interp ()
-import Numeric.AD.Internal.Forward.Double (ForwardDouble)
+import Numeric.AD.Mode.Forward.Double (ForwardDouble)
 import Control.Monad.Bayes.Class (MonadDistribution)
 import Control.Monad.Bayes.Sampler.Strict (sampleIO)
 
