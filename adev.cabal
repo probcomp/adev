@@ -1,0 +1,81 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           adev
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/alex-lew/adev#readme>
+homepage:       https://github.com/alex-lew/adev#readme
+bug-reports:    https://github.com/alex-lew/adev/issues
+author:         Alex Lew
+maintainer:     alexlew@mit.edu
+copyright:      Copyright (c) 2022
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/alex-lew/adev
+
+library
+  exposed-modules:
+      Numeric.ADEV.Class
+      Numeric.ADEV.Diff
+      Numeric.ADEV.Interp
+  other-modules:
+      Paths_adev
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      ad ==4.5.2.*
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.12.4
+  default-language: Haskell2010
+
+executable adev-exe
+  main-is: Figure2.hs
+  other-modules:
+      Paths_adev
+  hs-source-dirs:
+      examples
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ad ==4.5.2.*
+    , adev
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.12.4
+  default-language: Haskell2010
+
+test-suite adev-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_adev
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ad ==4.5.2.*
+    , adev
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.12.4
+  default-language: Haskell2010
