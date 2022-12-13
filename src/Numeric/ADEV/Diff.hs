@@ -12,7 +12,7 @@ import Control.Monad.Bayes.Class (
   uniformD,
   logCategorical,
   poisson,
-  bernoulli, 
+  bernoulli,
   normal)
 import Control.Monad.Cont (ContT(..))
 import Numeric.AD.Internal.Forward.Double (
@@ -172,7 +172,7 @@ instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble where
       let (D qs qd) = dq (head v)
       let qqd = Exp . primal . ln . qd
       v' <- qs
-      return (v':v, (pp (v':v) / pp v) / qqd v')
+      return (v':v, w * (pp (v':v) / pp v) / qqd v')
     step particles = do 
       particles <- resample particles
       mapM propagate particles

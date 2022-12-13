@@ -79,7 +79,7 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double where
       let (v, w) = particle
       let (D qs qd) = q (head v)
       v' <- qs
-      return (v':v, (p (v':v) / p v) / qd v')
+      return (v':v, w * (p (v':v) / p v) / qd v')
     step particles = do 
       particles <- resample particles
       mapM propagate particles

@@ -43,9 +43,20 @@ library:
   source-dirs: src
 
 executables:
-  adev-exe:
+  Figure2:
     main:                Figure2.hs
     source-dirs:         examples
+    other-modules: []
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - adev
+  ParticleFilterExample:
+    main:                ParticleFilterExample.hs
+    source-dirs:         examples
+    other-modules: []
     ghc-options:
     - -threaded
     - -rtsopts
