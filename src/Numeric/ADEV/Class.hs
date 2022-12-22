@@ -20,7 +20,10 @@ data C m r = C (m Double) (Double -> Log Double) (r -> Log r)
 --           unbiasedly estimated real numbers)
 --   * @p@ - the type used for monadic probabilistic programming (so 
 --           that @p m a@ is a probabilistic program returning @a@)
-class (RealFrac r, Monad (p m), Monad m) => ADEV p m r | p -> r, r -> p where
+--   * @s@ - the type used for monadic probabilistic programming with
+--           Stochastic AD (so that @s m a@ is a probabilistic program
+--           returning @a@ handled by Gaurav et al. (2022)'s AD scheme.)
+class (RealFrac r, Monad (p m), Monad m, Monad (s m)) => ADEV p m r s | p -> r, r -> p, r -> s, s -> r where
   -- | Sample a random uniform value between 0 and 1.
   sample           :: p m r
   -- | Add a real value into a running cost accumulator.
@@ -72,5 +75,8 @@ class (RealFrac r, Monad (p m), Monad m) => ADEV p m r | p -> r, r -> p where
   poisson_weak     :: Log r -> p m Int
   -- | Gradients through rejection sampling for density-carrying distributions.
   reparam_reject   :: D m r a -> (a -> b) -> (D m r b) -> (D m r b) -> Log r -> p m b
-
+  -- | Stochastic AD
+  flip_pruned      :: r -> s m Bool
+  normal_pruned    :: r -> r -> s m r
+  expect_pruned    :: s m r -> m r
 

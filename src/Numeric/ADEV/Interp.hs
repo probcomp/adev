@@ -19,6 +19,7 @@ import Control.Monad (replicateM, mapM)
 import Data.Vector qualified as V
 import Numeric.Log (Log(..))
 import qualified Numeric.Log as Log (sum)
+import Control.Monad.Trans.Identity
 
 -- | Standard, non-AD semantics of an ADEV program.
 --   * Reals are represented as Doubles.
@@ -26,7 +27,7 @@ import qualified Numeric.Log as Log (sum)
 --     the monad-bayes @MonadInfer@ interface.
 --   * The ADEV probability monad is interpreted as @WriterT (Sum Double) m@,
 --     i.e. a probabilistic computation that accumulates an additive loss.
-instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double where
+instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double IdentityT where
   sample           = uniform 0 1
   flip_enum        = bernoulli
   flip_reinforce   = bernoulli
@@ -35,10 +36,7 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double where
   add_cost w       = tell (Sum w)
   expect f         = do {(x, w) <- runWriterT f; return (x + getSum w)}
   exact_           = return
-  plus_ esta estb  = do
-    a <- esta
-    b <- estb
-    return (a + b)
+  plus_ esta estb  = pure (+) <*> esta <*> estb
   times_ esta estb = do
     a <- esta
     b <- estb
@@ -94,3 +92,7 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double where
       return x
     else
       reparam_reject s h (D p ppdf) (D q qpdf) m
+  
+  flip_pruned    = bernoulli
+  normal_pruned  = normal
+  expect_pruned  = runIdentityT

@@ -25,6 +25,7 @@ import Numeric.Log (Log(..))
 import qualified Numeric.Log as Log (sum)
 import Data.List (zipWith4)
 import qualified Data.Vector as V
+import Numeric.ADEV.StochasticAD (stochastic_derivative, PruningProgram(..))
 
 split :: ForwardDouble -> (Double, Double)
 split dx = (primal dx, tangent dx)
@@ -39,7 +40,7 @@ split dx = (primal dx, tangent dx)
 --     losses and loss derivatives into estimators of *expected* losses and
 --     loss derivatives, where the expectation is taken over the probabilistic
 --     program in question.
-instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble where  
+instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble PruningProgram where  
   sample = ContT $ \dloss -> do
     u <- uniform 0 1
     dloss (bundle u 0)
@@ -177,6 +178,39 @@ instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble where
       particles <- resample particles
       mapM propagate particles
 
+  flip_pruned dp = PruningProgram run_ trace_ ret_
+    where
+      (p, p') = split dp
+      run_    = do
+        u <- uniform 0 1
+        let b = u > (1 - p)
+        if dp > 0 then
+          return ([u], [1.0], if b then 0 else p'/(1-p))
+        else
+          return ([u], [0.0], if b then -p'/p else 0)
+      trace_ [] = do 
+        u <- uniform 0 1
+        return ([if u > (1 - p) then 1 else 0], [])
+      trace_ (u:us) = return ([if u > (1 - p) then 1 else 0], us)
+      ret_   (t:ts) = (t == 1.0, ts) -- TODO: use t > 0.5 instead, for floating-point safety?
+  
+  normal_pruned mu sig = PruningProgram run_ trace_ ret_
+    where
+      run_    = do
+        u <- normal 0 1
+        return ([u], [u], 0)
+      trace_ [] = do 
+        u <- normal 0 1
+        return ([u], [])
+      trace_ (u:us) = return ([u], us)
+      ret_   (t:ts) = ((bundle t 0) * sig + mu, ts)
+
+  expect_pruned pruning_prog = do
+    (val, val', weight) <- stochastic_derivative pruning_prog
+    let (v, dv) = split val
+    let (v', _) = split val'
+    return (bundle v (dv + (v' - v) * weight))
+  
 diff :: MonadDistribution m => (ForwardDouble -> m ForwardDouble) -> Double -> m Double
 diff f x = do
   df <- f (bundle x 1)

@@ -29,6 +29,7 @@ library
       Numeric.ADEV.Diff
       Numeric.ADEV.Distributions
       Numeric.ADEV.Interp
+      Numeric.ADEV.StochasticAD
   other-modules:
       Paths_adev
   hs-source-dirs:
@@ -62,6 +63,22 @@ executable Figure2
 
 executable ParticleFilterExample
   main-is: ParticleFilterExample.hs
+  hs-source-dirs:
+      examples
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ad ==4.5.2.*
+    , adev
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.12.4
+  default-language: Haskell2010
+
+executable StochasticADExample
+  main-is: StochasticADExample.hs
   hs-source-dirs:
       examples
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
