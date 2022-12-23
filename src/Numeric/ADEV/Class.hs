@@ -78,5 +78,5 @@ class (RealFrac r, Monad (p m), Monad m, Monad (s m)) => ADEV p m r s | p -> r, 
   -- | Stochastic AD
   flip_pruned      :: r -> s m Bool
   normal_pruned    :: r -> r -> s m r
-  expect_pruned    :: s m r -> m r
-
+  expect_pruned    :: s m r -> m r -- is now just expect . run_pruned
+  run_pruned       :: s m a -> p m a -- New: run a stochastic AD program inside an ADEV probabilistic program

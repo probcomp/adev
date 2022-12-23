@@ -5,7 +5,7 @@ import Numeric.ADEV.Diff (diff)
 import Numeric.ADEV.Interp ()
 import Numeric.AD.Mode.Forward.Double (ForwardDouble)
 import Control.Monad.Bayes.Class (MonadDistribution)
-import Control.Monad.Bayes.Sampler.Strict (sampleIO)
+import Control.Monad.Bayes.Sampler.Lazy (sampler)
 
 l :: ADEV p m r s => r -> m r
 l theta = expect $ do
@@ -27,5 +27,5 @@ sgd loss eta x0 steps =
 
 main :: IO ()
 main = do 
-    vs <- sampleIO $ sgd l 0.2 0.2 100
+    vs <- sampler $ sgd l 0.2 0.2 100
     print vs

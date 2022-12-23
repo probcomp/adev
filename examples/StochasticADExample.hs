@@ -5,7 +5,7 @@ import Numeric.ADEV.Diff (diff)
 import Numeric.ADEV.Interp ()
 import Numeric.AD.Internal.Forward.Double (ForwardDouble, bundle)
 import Control.Monad.Bayes.Class (MonadDistribution)
-import Control.Monad.Bayes.Sampler.Strict (sampleIO)
+import Control.Monad.Bayes.Sampler.Lazy (sampler)
 import Control.Monad (replicateM)
 import Numeric.ADEV.StochasticAD (stochastic_derivative)
 
@@ -49,17 +49,22 @@ geom_pruned p = do
   else
     return 1
 
+geom_adev :: (Floating r, ADEV p m r s) => r -> p m Int
+geom_adev p = do
+  n <- run_pruned (geom_pruned p)
+  return (n + p)
+
 geom_demo = do
-  geom_triple <- sampleIO $ stochastic_derivative (geom_pruned $ bundle 0.4 1)
+  geom_triple <- sampler $ stochastic_derivative (geom_pruned $ bundle 0.4 1)
   putStr "Sampled (X, Y, w) for Geom(0.4): "
   print geom_triple
-  binom_triple <- sampleIO $ stochastic_derivative (binom_pruned 10 $ bundle 0.4 1)
+  binom_triple <- sampler $ stochastic_derivative (binom_pruned 10 $ bundle 0.4 1)
   putStr "Sampled (X, Y, w) for Binom(10, 0.4): "
   print binom_triple
   putStr "Estimated derivative for Geom(0.4) [1000 samples]: "
-  geom_diff <- sampleIO $ diffN 1000 (expect_pruned . fmap fromIntegral . geom_pruned) 0.4
+  geom_diff <- sampler $ diffN 1000 (expect_pruned . fmap fromIntegral . geom_pruned) 0.4
   print geom_diff
-  binom_diff <- sampleIO $ diffN 1000 (expect_pruned . fmap fromIntegral . binom_pruned 10) 0.4
+  binom_diff <- sampler $ diffN 1000 (expect_pruned . fmap fromIntegral . binom_pruned 10) 0.4
   putStr "Estimated derivative for Binom(10, 0.4) [1000 samples]: "
   print binom_diff
 
@@ -77,7 +82,7 @@ walk_loss p = expect_pruned (walk p)
 
 walk_demo = do
   putStr "Estimated derivative for walk_loss(100) [1000 samples]: "
-  walk_diff <- sampleIO $ diffN 1000 walk_loss 100
+  walk_diff <- sampler $ diffN 1000 walk_loss 100
   print walk_diff
 
 -- Toy program from Gaurav et al. 2022 (https://github.com/gaurav-arya/StochasticAD.jl/blob/main/tutorials/toy_optimizations/intro.jl)
@@ -91,7 +96,7 @@ toy_loss p = expect_pruned $ do
 
 toy_demo = do
   putStr "Optimization trajectory of toy program (1000 steps, 20 evals per step):"
-  vs <- sampleIO $ sgd toy_loss 0.001 0.5 1000
+  vs <- sampler $ sgd toy_loss 0.001 0.5 1000
   print vs
 
 sgd :: MonadDistribution m => (ForwardDouble -> m ForwardDouble) -> Double -> Double -> Int -> m [Double]

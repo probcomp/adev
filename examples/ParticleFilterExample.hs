@@ -6,7 +6,7 @@ import Numeric.ADEV.Interp ()
 import Numeric.ADEV.Distributions (normalD)
 import Numeric.AD.Mode.Forward.Double (ForwardDouble)
 import Control.Monad.Bayes.Class (MonadDistribution)
-import Control.Monad.Bayes.Sampler.Strict (sampleIO)
+import Control.Monad.Bayes.Sampler.Lazy (sampler)
 import Numeric.Log (Log(..))
 
 --   smc :: ([a] -> Log r) -> D m r a -> (a -> D m r a) -> ([a] -> m r) -> Int -> Int -> m r
@@ -43,5 +43,5 @@ sga loss eta x0 steps =
 
 main :: IO ()
 main = do
-    vs <- sampleIO $ sga l 10.0 0.0 500
+    vs <- sampler $ sga l 10.0 0.0 500
     print (vs)

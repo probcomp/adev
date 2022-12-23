@@ -14,6 +14,8 @@ import Control.Monad.Bayes.Class (
   poisson,
   bernoulli,
   normal)
+import Control.Monad.Bayes.Sampler.Lazy (Sampler)
+import Control.Monad.Bayes.Sampler.Lazy.Coupled (coupled)
 import Control.Monad.Cont (ContT(..))
 import Numeric.AD.Internal.Forward.Double (
   ForwardDouble, 
@@ -40,14 +42,14 @@ split dx = (primal dx, tangent dx)
 --     losses and loss derivatives into estimators of *expected* losses and
 --     loss derivatives, where the expectation is taken over the probabilistic
 --     program in question.
-instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble PruningProgram where  
+
+instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where  
   sample = ContT $ \dloss -> do
     u <- uniform 0 1
     dloss (bundle u 0)
   
   flip_enum dp = ContT $ \dloss -> do
-    dl1 <- dloss True
-    dl2 <- dloss False
+    (dl1, dl2) <- coupled (dloss True) (dloss False)
     return (dp * dl1 + (1 - dp) * dl2)
 
   flip_reinforce dp = ContT $ \dloss -> do
@@ -205,12 +207,16 @@ instance MonadDistribution m => ADEV (ContT ForwardDouble) m ForwardDouble Pruni
       trace_ (u:us) = return ([u], us)
       ret_   (t:ts) = ((bundle t 0) * sig + mu, ts)
 
-  expect_pruned pruning_prog = do
-    (val, val', weight) <- stochastic_derivative pruning_prog
-    let (v, dv) = split val
-    let (v', _) = split val'
-    return (bundle v (dv + (v' - v) * weight))
+  expect_pruned = expect . run_pruned
   
+  run_pruned pruning_prog = ContT $ \dloss -> do
+    (val, val', weight) <- stochastic_derivative pruning_prog
+    if weight == 0.0 then
+      dloss val
+    else do
+      ((l1, l1'), l2) <- coupled (fmap split (dloss val)) (fmap primal (dloss val'))
+      return (bundle l1 (l1' + (l2 - l1) * weight))
+
 diff :: MonadDistribution m => (ForwardDouble -> m ForwardDouble) -> Double -> m Double
 diff f x = do
   df <- f (bundle x 1)

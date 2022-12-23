@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Control.Monad.Bayes.Sampler.Lazy.Coupled
       Numeric.ADEV.Class
       Numeric.ADEV.Diff
       Numeric.ADEV.Distributions

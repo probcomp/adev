@@ -96,3 +96,4 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double IdentityT w
   flip_pruned    = bernoulli
   normal_pruned  = normal
   expect_pruned  = runIdentityT
+  run_pruned     = lift . runIdentityT
