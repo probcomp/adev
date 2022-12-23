@@ -28,6 +28,7 @@ library
       Control.Monad.Bayes.Sampler.Lazy.Coupled
       Numeric.ADEV.Class
       Numeric.ADEV.Diff
+      Numeric.ADEV.DiffOptimized
       Numeric.ADEV.Distributions
       Numeric.ADEV.Interp
       Numeric.ADEV.StochasticAD

@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Numeric.ADEV.Class
-import Numeric.ADEV.Diff (diff)
+import Numeric.ADEV.DiffOptimized (diff)
 import Numeric.ADEV.Interp ()
 import Numeric.AD.Internal.Forward.Double (ForwardDouble, bundle)
 import Control.Monad.Bayes.Class (MonadDistribution)
@@ -28,6 +28,8 @@ diffN n l x = do
   xs <- replicateM n (diff l x)
   return ((sum xs) / (fromIntegral n))
 
+mean xs = (sum xs) / (fromIntegral (length xs))
+std xs = sqrt ((sum (map (\x -> (x - mean xs) ^ 2) xs)) / (fromIntegral (length xs)))
 
 -- Binomial:
 binom_pruned :: (Floating r, ADEV p m r s) => Int -> r -> s m Int
@@ -51,8 +53,54 @@ geom_pruned p = do
 
 geom_adev :: (Floating r, ADEV p m r s) => r -> p m Int
 geom_adev p = do
-  n <- run_pruned (geom_pruned p)
-  return (n + p)
+  b <- flip_reinforce p
+  if b then do
+    n <- geom_adev p
+    return (n + 1)
+  else
+    return 1
+
+geom_adev_bernoulli :: (Floating r, ADEV p m r s) => r -> p m Int
+geom_adev_bernoulli p = do
+  b <- run_pruned (flip_pruned p)
+  if b then do
+    n <- geom_adev_bernoulli p
+    return (n + 1)
+  else
+    return 1
+
+geom_reversed_pruned :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_pruned p = expect_pruned (fmap fromIntegral helper)
+  where 
+  helper = do
+    b <- flip_pruned p
+    if not b then do
+      n <- helper
+      return (n + 1)
+    else
+      return 1
+
+geom_reversed_adev :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_adev p = expect (fmap fromIntegral helper)
+  where
+  helper = do
+    b <- flip_reinforce p
+    if not b then do
+      n <- helper
+      return (n + 1)
+    else
+      return 1
+
+geom_reversed_pruned_adev :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_pruned_adev p = expect (fmap fromIntegral helper)
+  where
+  helper = do
+    b <- run_pruned (flip_pruned p)
+    if not b then do
+      n <- helper
+      return (n + 1)
+    else
+      return 1
 
 geom_demo = do
   geom_triple <- sampler $ stochastic_derivative (geom_pruned $ bundle 0.4 1)
