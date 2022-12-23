@@ -130,8 +130,7 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
     let (rate, rate') = split (exp (ln drate))
     x_neg <- poisson rate
     let x_pos = x_neg + 1
-    y_neg <- dloss x_neg
-    y_pos <- dloss x_pos
+    (y_neg, y_pos) <- coupled (dloss x_neg) (dloss x_pos)
     let grad = primal y_pos - primal y_neg
     return (bundle (primal y_neg) (grad * rate'))
 
