@@ -9,9 +9,9 @@ import Control.Monad.Bayes.Sampler.Lazy (sampler)
 import Control.Monad (replicateM)
 import Numeric.ADEV.StochasticAD (stochastic_derivative)
 
--- Examples of ADEV's implementation of Stochastic AD (Gaurav et al. 2022).
+-- Examples of ADEV's implementation of Stochastic AD (Arya et al. 2022).
 -- Currently, only the "Aggressive Pruning" strategy is supported, and
--- a Stochastic Program (in the sense of Gaurav et al. 2022) cannot be 
+-- a Stochastic Program (in the sense of Arya et al. 2022) cannot be 
 -- embedded within an ADEV probabilistic program; rather, the user can
 -- apply `expect_pruned` to yield a differentiable estimator of the program's expectation.
 -- The user can further apply exp_, times_, plus_, etc. to the estimator.

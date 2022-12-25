@@ -6,7 +6,7 @@ import Control.Monad.Bayes.Class (MonadDistribution, bernoulli)
 
 -- | Type used to represent translated "Stochastic AD" programs.
 -- The idea is that a value of type PruningProgram m a pairs together:
--- * a "stacked" Stochastic Program (a la Gaurav et al. 2022) X(p) 
+-- * a "stacked" Stochastic Program (a la Arya et al. 2022) X(p) 
 --   over *traces* of type [Double], recording all the user's random
 --   choices.
 -- * a function that takes such a trace and outputs a value of type a.
@@ -14,15 +14,15 @@ import Control.Monad.Bayes.Class (MonadDistribution, bernoulli)
 -- of discrete choices; for example, drawing `False` from a Bernoulli
 -- will store `0.0` in the trace, and drawing `True` will store `1.0`.
 -- A PruningProgram knows how to sample its stochastic derivative (again, 
--- in the sense of Gaurav et al. 2022). In particular, it knows how to 
+-- in the sense of Arya et al. 2022). In particular, it knows how to 
 -- generate both a primary trace *and* an alternative trace, as well as a weight,
 -- where the alternative trace differs at most in one random choice from the 
--- primary trace, and the weight is calculated as in Gaurav et al. 2022.
+-- primary trace, and the weight is calculated as in Arya et al. 2022.
 -- The implementation is a bit weird:
 -- * The `runPruned` method returns three things. Intuitively, they should be
 --   the primary trace, the alternative trace, and the weight. However, the first
 --   return value is not the primary trace, but rather something lower-level: we 
---   call it `u`, and it corresponds roughly to $\Omega$ in Gaurav et al. 2022.
+--   call it `u`, and it corresponds roughly to $\Omega$ in Arya et al. 2022.
 --   It records the underlying randomness used to generate a primary trace, and 
 --   can be converted into a real primary trace using the `getTrace` method.
 --   For example, if the program generates two `bernoulli 0.5` variables, then
@@ -65,7 +65,7 @@ instance MonadDistribution m => Monad (PruningProgram m) where
   -- It first samples a trace from `mu`, then uses `getRetval` to extract a value `v1`.
   -- It then samples the final part of the trace from `k v1`.
   -- The key complexity here is in how the alternative trace is computed.
-  -- We use the "aggressive pruning" strategy of Gaurav et al.: a weight is computed
+  -- We use the "aggressive pruning" strategy of Arya et al.: a weight is computed
   -- for each program in the sequence, and then a Bernoulli is sampled with that weight
   -- to determine which of the two halves contains the alternative that will be tracked.
   -- The other alternative is discarded, and the weight becomes the sum of the weights.

@@ -22,7 +22,7 @@ data C m r = C (m Double) (Double -> Log Double) (r -> Log r)
 --           that @p m a@ is a probabilistic program returning @a@)
 --   * @s@ - the type used for monadic probabilistic programming with
 --           Stochastic AD (so that @s m a@ is a probabilistic program
---           returning @a@ handled by Gaurav et al. (2022)'s AD scheme.)
+--           returning @a@ handled by Arya et al. (2022)'s AD scheme.)
 class (RealFrac r, Monad (p m), Monad m, Monad (s m)) => ADEV p m r s | p -> r, r -> p, r -> s, s -> r where
   -- | Sample a random uniform value between 0 and 1.
   sample           :: p m r
