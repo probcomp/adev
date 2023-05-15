@@ -28,6 +28,10 @@ diffN n l x = do
   xs <- replicateM n (diff l x)
   return ((sum xs) / (fromIntegral n))
 
+stdN n l x = do
+  xs <- replicateM n (diff l x)
+  return (std xs)
+
 mean xs = (sum xs) / (fromIntegral (length xs))
 std xs = sqrt ((sum (map (\x -> (x - mean xs) ^ 2) xs)) / (fromIntegral (length xs)))
 
@@ -102,6 +106,21 @@ geom_reversed_pruned_adev p = expect (fmap fromIntegral helper)
     else
       return 1
 
+geom_weak :: (Floating r, ADEV p m r s) => r -> m r
+geom_weak p = expect (fmap fromIntegral helper)
+  where
+  helper = do
+    b <- flip_weak p
+    if not b then do
+      n <- helper
+      return (n + 1)
+    else
+      return 1
+
+other_demo = do
+  x <- sampler $ diff (geom_weak) 0.4
+  print x
+
 geom_demo = do
   geom_triple <- sampler $ stochastic_derivative (geom_pruned $ bundle 0.4 1)
   putStr "Sampled (X, Y, w) for Geom(0.4): "
@@ -117,20 +136,22 @@ geom_demo = do
   print binom_diff
 
 -- Random walk demo from Gaurav et al. 2022 (https://github.com/gaurav-arya/StochasticAD.jl/blob/main/tutorials/random_walk/core.jl)
-walk :: (Floating r, ADEV p m r s) => r -> s m r
-walk p = walkFrom 0 50
+walk :: (Floating r, ADEV p m r s) => Int -> r -> s m r
+walk n p = do
+  x <- walkFrom 0 n
+  return (x * x)
   where
     walkFrom x 0 = return x
     walkFrom x n = do
       move_right <- flip_pruned (exp (-x / p))
       walkFrom (if move_right then x + 1 else x - 1) (n - 1)
 
-walk_loss :: (Floating r, ADEV p m r s) => r -> m r
-walk_loss p = expect_pruned (walk p)
+walk_loss :: (Floating r, ADEV p m r s) => Int -> r -> m r
+walk_loss n p = expect_pruned (walk n p)
 
 walk_demo = do
   putStr "Estimated derivative for walk_loss(100) [1000 samples]: "
-  walk_diff <- sampler $ diffN 1000 walk_loss 100
+  walk_diff <- sampler $ diffN 1000 (walk_loss 100) 100
   print walk_diff
 
 -- Toy program from Gaurav et al. 2022 (https://github.com/gaurav-arya/StochasticAD.jl/blob/main/tutorials/toy_optimizations/intro.jl)
@@ -160,6 +181,7 @@ sgd loss eta x0 steps =
 
 main :: IO ()
 main = do
+  other_demo
   toy_demo
   geom_demo
   walk_demo

@@ -11,3 +11,6 @@ import Control.Monad.Bayes.Sampler.Lazy
 -- Wingate has something a little more automated. 
 coupled :: Sampler a -> Sampler b -> Sampler (a, b)
 coupled (Sampler s1) (Sampler s2) = Sampler $ \g -> (s1 g, s2 g)
+
+get_seed :: Sampler Tree
+get_seed = Sampler $ \g -> g

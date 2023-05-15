@@ -245,6 +245,18 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
       ((l1, l1'), l2) <- coupled (fmap split (call dloss True val)) (fmap primal (call dloss False val'))
       return (bundle l1 (l1' + (l2 - l1) * weight))
 
+  flip_weak dp = ContT $ \dloss -> return $ \wants_grad -> do
+    b <- bernoulli (primal dp)
+    if wants_grad then do
+      (l1, l2) <- coupled (call dloss True b) (call dloss False (not b))
+      let (ltrue, lfalse) = if b then (l1, l2) else (l2, l1)
+      let loss_est = (primal dp * primal ltrue) + ((1 - primal dp) * primal lfalse)
+      let grad_est = tangent l1 + (primal ltrue - primal lfalse) * (tangent dp)
+      return (bundle loss_est grad_est)
+    else do
+      dl <- call dloss False b
+      return (bundle (primal dl) 0)
+
 diff :: MonadDistribution m => (ForwardDouble -> m ForwardDouble) -> Double -> m Double
 diff f x = do
   df <- f (bundle x 1)
