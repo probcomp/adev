@@ -25,6 +25,7 @@ dependencies:
 - log-domain >=0.12 && <0.14
 - mtl >=2.2.2 && <2.2.3
 - ad >=4.5.2 && <4.5.3
+- reflection >=2.1.6 && <3
 - transformers >=0.5.6.2 && <0.5.6.3
 - vector >=0.12.3.1 && <0.12.4
 
@@ -73,6 +74,17 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - adev
+  ReverseExample:
+    main:                ReverseExample.hs
+    source-dirs:         examples
+    other-modules: []
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - adev
+  
 
 tests:
   adev-test:

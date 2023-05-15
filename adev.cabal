@@ -31,6 +31,7 @@ library
       Numeric.ADEV.DiffOptimized
       Numeric.ADEV.Distributions
       Numeric.ADEV.Interp
+      Numeric.ADEV.Reverse
       Numeric.ADEV.StochasticAD
   other-modules:
       Paths_adev
@@ -43,6 +44,7 @@ library
     , log-domain >=0.12 && <0.14
     , monad-bayes >=1.1.0
     , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
     , vector >=0.12.3.1 && <0.12.4
   default-language: Haskell2010
@@ -59,6 +61,7 @@ executable Figure2
     , log-domain >=0.12 && <0.14
     , monad-bayes >=1.1.0
     , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
     , vector >=0.12.3.1 && <0.12.4
   default-language: Haskell2010
@@ -75,6 +78,24 @@ executable ParticleFilterExample
     , log-domain >=0.12 && <0.14
     , monad-bayes >=1.1.0
     , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.12.4
+  default-language: Haskell2010
+
+executable ReverseExample
+  main-is: ReverseExample.hs
+  hs-source-dirs:
+      examples
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ad ==4.5.2.*
+    , adev
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
     , vector >=0.12.3.1 && <0.12.4
   default-language: Haskell2010
@@ -91,6 +112,7 @@ executable StochasticADExample
     , log-domain >=0.12 && <0.14
     , monad-bayes >=1.1.0
     , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
     , vector >=0.12.3.1 && <0.12.4
   default-language: Haskell2010
@@ -110,6 +132,7 @@ test-suite adev-test
     , log-domain >=0.12 && <0.14
     , monad-bayes >=1.1.0
     , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
     , vector >=0.12.3.1 && <0.12.4
   default-language: Haskell2010
