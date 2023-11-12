@@ -1,3 +1,5 @@
+{-# LANGUAGE  FlexibleContexts, RankNTypes, FunctionalDependencies, ScopedTypeVariables, AllowAmbiguousTypes #-}
+
 module Main (main) where
 
 import Numeric.ADEV.Class
@@ -7,7 +9,7 @@ import Numeric.AD.Internal.Forward.Double (ForwardDouble, bundle)
 import Control.Monad.Bayes.Class (MonadDistribution)
 import Control.Monad.Bayes.Sampler.Lazy (sampler)
 import Control.Monad (replicateM)
-import Numeric.ADEV.StochasticAD (stochastic_derivative)
+import Numeric.ADEV.StochasticAD (stochastic_derivative, PruningProgram)
 
 -- Examples of ADEV's implementation of Stochastic AD (Arya et al. 2022).
 -- Currently, only the "Aggressive Pruning" strategy is supported, and
@@ -36,7 +38,7 @@ mean xs = (sum xs) / (fromIntegral (length xs))
 std xs = sqrt ((sum (map (\x -> (x - mean xs) ^ 2) xs)) / (fromIntegral (length xs)))
 
 -- Binomial:
-binom_pruned :: (Floating r, ADEV p m r s) => Int -> r -> s m Int
+binom_pruned :: (Floating r, ADEV p m r, MonadDistribution m) => Int -> r -> PruningProgram m Int
 binom_pruned n p =
   if n == 0 then
     return 0
@@ -46,7 +48,7 @@ binom_pruned n p =
     return (if a then n + 1 else n)
 
 -- Geometric:
-geom_pruned :: (Floating r, ADEV p m r s) => r -> s m Int
+geom_pruned :: (Floating r, ADEV p m r, MonadDistribution m) => r -> PruningProgram m Int
 geom_pruned p = do
   b <- flip_pruned p
   if b then do
@@ -55,7 +57,7 @@ geom_pruned p = do
   else
     return 1
 
-geom_adev :: (Floating r, ADEV p m r s) => r -> p m Int
+geom_adev :: (Floating r, ADEV p m r) => r -> p m Int
 geom_adev p = do
   b <- flip_reinforce p
   if b then do
@@ -64,7 +66,7 @@ geom_adev p = do
   else
     return 1
 
-geom_adev_bernoulli :: (Floating r, ADEV p m r s) => r -> p m Int
+geom_adev_bernoulli :: (Floating r, ADEV p m r) => r -> p m Int
 geom_adev_bernoulli p = do
   b <- run_pruned (flip_pruned p)
   if b then do
@@ -73,7 +75,7 @@ geom_adev_bernoulli p = do
   else
     return 1
 
-geom_reversed_pruned :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_pruned :: (Floating r, ADEV p m r) => r -> m r
 geom_reversed_pruned p = expect_pruned (fmap fromIntegral helper)
   where 
   helper = do
@@ -84,7 +86,7 @@ geom_reversed_pruned p = expect_pruned (fmap fromIntegral helper)
     else
       return 1
 
-geom_reversed_adev :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_adev :: (Floating r, ADEV p m r) => r -> m r
 geom_reversed_adev p = expect (fmap fromIntegral helper)
   where
   helper = do
@@ -95,7 +97,7 @@ geom_reversed_adev p = expect (fmap fromIntegral helper)
     else
       return 1
 
-geom_reversed_pruned_adev :: (Floating r, ADEV p m r s) => r -> m r
+geom_reversed_pruned_adev :: (Floating r, ADEV p m r) => r -> m r
 geom_reversed_pruned_adev p = expect (fmap fromIntegral helper)
   where
   helper = do
@@ -106,7 +108,7 @@ geom_reversed_pruned_adev p = expect (fmap fromIntegral helper)
     else
       return 1
 
-geom_weak :: (Floating r, ADEV p m r s) => r -> m r
+geom_weak :: (Floating r, ADEV p m r) => r -> m r
 geom_weak p = expect (fmap fromIntegral helper)
   where
   helper = do
@@ -136,23 +138,24 @@ geom_demo = do
   print binom_diff
 
 -- Random walk demo from Gaurav et al. 2022 (https://github.com/gaurav-arya/StochasticAD.jl/blob/main/tutorials/random_walk/core.jl)
-walk :: (Floating r, ADEV p m r s) => Int -> r -> s m r
-walk n p = do
-  x <- walkFrom 0 n
-  return (x * x)
-  where
-    walkFrom x 0 = return x
-    walkFrom x n = do
-      move_right <- flip_pruned (exp (-x / p))
-      walkFrom (if move_right then x + 1 else x - 1) (n - 1)
+-- walk :: (Floating r, ADEV p m r) => Int -> r -> PruningProgram m r
+-- walk n (p::r) = do
+--   x <- walkFrom 0 n
+--   return (x * x)
+--   where
+--     walkFrom :: (ADEV p m r) => r -> Int -> PruningProgram m r
+--     walkFrom x 0 = return x
+--     walkFrom x n = do
+--       move_right <- flip_pruned (exp (-x / p))
+--       walkFrom (if move_right then x + 1 else x - 1) (n - 1)
 
-walk_loss :: (Floating r, ADEV p m r s) => Int -> r -> m r
-walk_loss n p = expect_pruned (walk n p)
+-- walk_loss :: (Floating r, ADEV p m r, MonadDistribution m) => Int -> r -> m r
+-- walk_loss n p = expect_pruned (walk n p)
 
-walk_demo = do
-  putStr "Estimated derivative for walk_loss(100) [1000 samples]: "
-  walk_diff <- sampler $ diffN 1000 (walk_loss 100) 100
-  print walk_diff
+-- walk_demo = do
+--   putStr "Estimated derivative for walk_loss(100) [1000 samples]: "
+--   walk_diff <- sampler $ diffN 1000 (walk_loss 100) 100
+--   print walk_diff
 
 -- Toy program from Gaurav et al. 2022 (https://github.com/gaurav-arya/StochasticAD.jl/blob/main/tutorials/toy_optimizations/intro.jl)
 toy_loss p = expect_pruned $ do
@@ -184,4 +187,4 @@ main = do
   other_demo
   toy_demo
   geom_demo
-  walk_demo
+  --walk_demo

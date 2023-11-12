@@ -1,28 +1,30 @@
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Numeric.ADEV.DiffOptimized (
   ADEV(..), diff
 ) where
 
-import Numeric.ADEV.Class
+import Numeric.ADEV.Class ( ADEV(..), C(C), D(D) )
 import Numeric.ADEV.Interp()
 import Control.Monad.Bayes.Class (
-  MonadDistribution, 
-  uniform, 
+  MonadDistribution,
+  uniform,
   uniformD,
   logCategorical,
   poisson,
   bernoulli,
   normal)
-import Control.Monad.Bayes.Sampler.Lazy (Sampler)
+import Control.Monad.Bayes.Sampler.Lazy (SamplerT)
 import Control.Monad.Bayes.Sampler.Lazy.Coupled (coupled)
 import Control.Monad.Cont (ContT(..))
 import Numeric.AD.Internal.Forward.Double (
-  ForwardDouble, 
-  bundle, 
-  primal, 
+  ForwardDouble,
+  bundle,
+  primal,
   tangent)
-import Control.Monad (replicateM, mapM)
+import Control.Monad (replicateM)
 import Numeric.Log (Log(..))
 import qualified Numeric.Log as Log (sum)
 import Data.List (zipWith4)
@@ -43,15 +45,16 @@ split dx = (primal dx, tangent dx)
 --     loss derivatives, where the expectation is taken over the probabilistic
 --     program in question.
 
+call :: Monad m => (t1 -> m (t2 -> m b)) -> t2 -> t1 -> m b
 call dloss b x = do
   l <- dloss x
   l b
 
-instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble PruningProgram where
-  sample = ContT $ \dloss -> return $ \wants_grad -> do
+instance ADEV (ContT (Bool -> SamplerT ForwardDouble)) SamplerT ForwardDouble where
+  unif = ContT $ \dloss -> return $ \wants_grad -> do
     u <- uniform 0 1
     call dloss wants_grad (bundle u 0)
-  
+
   flip_enum dp = ContT $ \dloss -> return $ \wants_grad -> do
     (dl1, dl2) <- coupled (call dloss wants_grad True) (call dloss wants_grad False)
     return (bundle (primal $ dp * dl1 + (1 - dp) * dl2) 0)
@@ -68,7 +71,7 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
   normal_reparam dmu dsig = do
     deps <- stdnorm
     return $ (deps * dsig) + dmu
-    where 
+    where
       stdnorm = ContT $ \dloss -> return $ \wants_grad -> do
         eps <- normal 0 1
         call dloss wants_grad (bundle eps 0)
@@ -78,39 +81,39 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
     let dx      =  bundle x 0
     (l, l')     <- fmap split (call dloss wants_grad dx)
     if wants_grad then
-      let logpdf' =  tangent $ (-1 * log dsig) - 0.5 * ((dx - dmu) / dsig)^2 in
+      let logpdf' =  tangent $ (-1 * log dsig) - 0.5 * ((dx - dmu) / dsig)^(2::Int) in
       return (bundle l (l' + l * logpdf'))
     else
       return (bundle l 0)
-    
+
   add_cost dcost = ContT $ \dloss -> return $ \wants_grad -> do
     dl <- call dloss wants_grad ()
     return (dl + dcost)
-   
+
   expect prog = do
     dloss <- runContT prog (\dl -> return $ \wants_grad -> return (bundle (primal dl) (if wants_grad then tangent dl else 0)))
     dloss True
-  
+
   plus_ estimate_da estimate_db = do -- different from paper's estimator
     da <- estimate_da
     db <- estimate_db
     return (da + db)
-  
+
   times_ estimate_da estimate_db = do
     da <- estimate_da
     db <- estimate_db
     return (da * db)
-    
+
   exp_ estimate_dx = do
     (x, x') <- (fmap split estimate_dx)
     s <- exp_ (fmap primal estimate_dx)
     return (bundle x (s * x'))
-  
+
   minibatch_ n m estimate_df = do
     indices <- replicateM m (uniformD [1..n])
     dfs <- mapM (\i -> estimate_df i) indices
     return $ (sum dfs) * (fromIntegral n / fromIntegral m)
-  
+
   exact_ = return
 
   baseline dp db  = do
@@ -162,18 +165,18 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
       let grad = primal y_pos - primal y_neg
       return (bundle (primal y_neg) (grad * rate'))
 
-  reparam_reject (D s spdf) h (D p ppdf) (D q qpdf) m = ContT $ \dloss -> 
+  reparam_reject (D s spdf) h (D p ppdf) (D q qpdf) m = ContT $ \dloss ->
     runContT (reinforce dpi) (dloss . h)
     where
     pi = do
-      eps <- s 
+      eps <- s
       let x = h eps
       let w = exp ((primal (ln (ppdf x))) - (primal (ln (qpdf x))))
       u <- uniform 0 1
       if u < w then return eps else pi
     dpi_density deps = spdf deps * ppdf (h deps) / qpdf (h deps)
     dpi = D pi dpi_density
-  
+
   smc dp (D q0samp q0dens) dq df n k = do
     particles <- iterateM step init n
     values <- mapM (\(v, w) -> do
@@ -203,7 +206,7 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
       let qqd = Exp . primal . ln . qd
       v' <- qs
       return (v':v, w * (pp (v':v) / pp v) / qqd v')
-    step particles = do 
+    step particles = do
       particles <- resample particles
       mapM propagate particles
 
@@ -216,31 +219,30 @@ instance ADEV (ContT (Bool -> Sampler ForwardDouble)) Sampler ForwardDouble Prun
         if dp > 0 then
           return ([u], [1.0], if b then 0 else p'/(1-p))
         else
-          return ([u], [0.0], if b then -p'/p else 0)
-      trace_ [] = do 
+          return ([u], [0.0], if b then-p'/p else 0)
+      trace_ [] = do
         u <- uniform 0 1
         return ([if u > (1 - p) then 1 else 0], [])
       trace_ (u:us) = return ([if u > (1 - p) then 1 else 0], us)
       ret_   (t:ts) = (t == 1.0, ts) -- TODO: use t > 0.5 instead, for floating-point safety?
-  
+
   normal_pruned mu sig = PruningProgram run_ trace_ ret_
     where
       run_    = do
         u <- normal 0 1
         return ([u], [u], 0)
-      trace_ [] = do 
+      trace_ [] = do
         u <- normal 0 1
         return ([u], [])
       trace_ (u:us) = return ([u], us)
       ret_   (t:ts) = ((bundle t 0) * sig + mu, ts)
 
   expect_pruned = expect . run_pruned
-  
+
   run_pruned pruning_prog = ContT $ \dloss -> return $ \wants_grad -> do
     (val, val', weight) <- stochastic_derivative pruning_prog
-    if not wants_grad || weight == 0.0 then do
-      l <- call dloss wants_grad val
-      return l
+    if not wants_grad || weight == 0.0 then
+      call dloss wants_grad val
     else do
       ((l1, l1'), l2) <- coupled (fmap split (call dloss True val)) (fmap primal (call dloss False val'))
       return (bundle l1 (l1' + (l2 - l1) * weight))

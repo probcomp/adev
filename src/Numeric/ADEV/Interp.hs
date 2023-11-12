@@ -1,15 +1,21 @@
-{-# LANGUAGE FlexibleInstances, ImportQualifiedPost, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances, ImportQualifiedPost, MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Numeric.ADEV.Interp where
-  
+module Numeric.ADEV.Interp () where
+
 import Numeric.ADEV.Class
+    ( ADEV(reparam_reject, poisson_weak, implicit_reparam, importance,
+           smc, leave_one_out, reinforce, baseline, minibatch_, exp_, times_,
+           plus_, exact_, add_cost, normal_reinforce, normal_reparam,
+           flip_reinforce, flip_enum, unif, expect),
+      C(C),
+      D(D) )
 import Control.Monad.Bayes.Class (
-  MonadDistribution, 
-  uniform, 
+  MonadDistribution,
+  uniform,
   uniformD,
   logCategorical,
-  score, 
-  bernoulli, 
+  bernoulli,
   poisson,
   normal)
 import Control.Monad.Trans.Class (lift)
@@ -19,7 +25,7 @@ import Control.Monad (replicateM, mapM)
 import Data.Vector qualified as V
 import Numeric.Log (Log(..))
 import qualified Numeric.Log as Log (sum)
-import Control.Monad.Trans.Identity
+-- import Control.Monad.Trans.Identity
 
 -- | Standard, non-AD semantics of an ADEV program.
 --   * Reals are represented as Doubles.
@@ -27,8 +33,8 @@ import Control.Monad.Trans.Identity
 --     the monad-bayes @MonadInfer@ interface.
 --   * The ADEV probability monad is interpreted as @WriterT (Sum Double) m@,
 --     i.e. a probabilistic computation that accumulates an additive loss.
-instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double IdentityT where
-  sample           = uniform 0 1
+instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double where
+  unif           = uniform 0 1
   flip_enum        = bernoulli
   flip_reinforce   = bernoulli
   normal_reparam   = normal
@@ -78,7 +84,7 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double IdentityT w
       let (D qs qd) = q (head v)
       v' <- qs
       return (v':v, w * (p (v':v) / p v) / qd v')
-    step particles = do 
+    step particles = do
       particles <- resample particles
       mapM propagate particles
   importance (D samp _) _ = lift samp
@@ -92,8 +98,8 @@ instance MonadDistribution m => ADEV (WriterT (Sum Double)) m Double IdentityT w
       return x
     else
       reparam_reject s h (D p ppdf) (D q qpdf) m
-  
-  flip_pruned    = bernoulli
-  normal_pruned  = normal
-  expect_pruned  = runIdentityT
-  run_pruned     = lift . runIdentityT
+
+  -- flip_pruned    = bernoulli
+  -- normal_pruned  = normal
+  -- expect_pruned  = runIdentityT
+  -- run_pruned     = lift . runIdentityT

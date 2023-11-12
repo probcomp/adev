@@ -1,26 +1,27 @@
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Numeric.ADEV.Diff (
   ADEV(..), diff
 ) where
 
-import Numeric.ADEV.Class
+import Numeric.ADEV.Class ( ADEV(..), C(C), D(D) )
 import Numeric.ADEV.Interp()
 import Control.Monad.Bayes.Class (
-  MonadDistribution, 
-  uniform, 
+  MonadDistribution,
+  uniform,
   uniformD,
   logCategorical,
   poisson,
   bernoulli,
   normal)
-import Control.Monad.Bayes.Sampler.Lazy (Sampler)
+import Control.Monad.Bayes.Sampler.Lazy (SamplerT)
 import Control.Monad.Bayes.Sampler.Lazy.Coupled (coupled)
 import Control.Monad.Cont (ContT(..))
 import Numeric.AD.Internal.Forward.Double (
-  ForwardDouble, 
-  bundle, 
-  primal, 
+  ForwardDouble,
+  bundle,
+  primal,
   tangent)
 import Control.Monad (replicateM, mapM)
 import Numeric.Log (Log(..))
@@ -43,11 +44,11 @@ split dx = (primal dx, tangent dx)
 --     loss derivatives, where the expectation is taken over the probabilistic
 --     program in question.
 
-instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where  
-  sample = ContT $ \dloss -> do
+instance ADEV (ContT ForwardDouble) SamplerT ForwardDouble where
+  unif = ContT $ \dloss -> do
     u <- uniform 0 1
     dloss (bundle u 0)
-  
+
   flip_enum dp = ContT $ \dloss -> do
     (dl1, dl2) <- coupled (dloss True) (dloss False)
     return (dp * dl1 + (1 - dp) * dl2)
@@ -60,8 +61,8 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
 
   normal_reparam dmu dsig = do
     deps <- stdnorm
-    return $ (deps * dsig) + dmu
-    where 
+    return $ deps * dsig + dmu
+    where
       stdnorm = ContT $ \dloss -> do
         eps <- normal 0 1
         dloss (bundle eps 0)
@@ -72,33 +73,33 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
     (l, l')     <- fmap split (dloss dx)
     let logpdf' =  tangent $ (-1 * log dsig) - 0.5 * ((dx - dmu) / dsig)^2
     return (bundle l (l' + l * logpdf'))
-    
+
   add_cost dcost = ContT $ \dloss -> do
     dl <- dloss ()
     return (dl + dcost)
-   
+
   expect prog = runContT prog return
-  
+
   plus_ estimate_da estimate_db = do -- different from paper's estimator
     da <- estimate_da
     db <- estimate_db
     return (da + db)
-  
+
   times_ estimate_da estimate_db = do
     da <- estimate_da
     db <- estimate_db
     return (da * db)
-    
+
   exp_ estimate_dx = do
-    (x, x') <- (fmap split estimate_dx)
+    (x, x') <- fmap split estimate_dx
     s <- exp_ (fmap primal estimate_dx)
     return (bundle x (s * x'))
-  
+
   minibatch_ n m estimate_df = do
     indices <- replicateM m (uniformD [1..n])
-    dfs <- mapM (\i -> estimate_df i) indices
-    return $ (sum dfs) * (fromIntegral n / fromIntegral m)
-  
+    dfs <- mapM estimate_df indices
+    return $ sum dfs * (fromIntegral n / fromIntegral m)
+
   exact_ = return
 
   baseline dp db  = do
@@ -116,7 +117,7 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
     dlosses <- mapM dloss xs
     let (ls, l's) = unzip (map split dlosses)
     -- For each l, average the other ls to get a baseline
-    let bs = map (\i -> (sum (take i ls) + sum (drop (i + 1) ls)) / (fromIntegral (m - 1))) [0..m-1]
+    let bs = map (\i -> (sum (take i ls) + sum (drop (i + 1) ls)) / fromIntegral (m - 1)) [0..m-1]
     let logpdfs = map (tangent . ln . dpdf) xs
     return $ bundle (sum ls / fromIntegral m) (sum (zipWith4 (\l l' b lpdf -> l' + (l - b) * lpdf) ls l's bs logpdfs) / fromIntegral m)
 
@@ -134,18 +135,18 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
     let grad = primal y_pos - primal y_neg
     return (bundle (primal y_neg) (grad * rate'))
 
-  reparam_reject (D s spdf) h (D p ppdf) (D q qpdf) m = ContT $ \dloss -> 
+  reparam_reject (D s spdf) h (D p ppdf) (D q qpdf) m = ContT $ \dloss ->
     runContT (reinforce dpi) (dloss . h)
     where
     pi = do
-      eps <- s 
+      eps <- s
       let x = h eps
-      let w = exp ((primal (ln (ppdf x))) - (primal (ln (qpdf x))))
+      let w = exp (primal (ln (ppdf x)) - primal (ln (qpdf x)))
       u <- uniform 0 1
       if u < w then return eps else pi
     dpi_density deps = spdf deps * ppdf (h deps) / qpdf (h deps)
     dpi = D pi dpi_density
-  
+
   smc dp (D q0samp q0dens) dq df n k = do
     particles <- iterateM step init n
     values <- mapM (\(v, w) -> do
@@ -165,7 +166,7 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
     resample particles = do
       let weights = map snd particles
       let total_weight = Log.sum weights
-      let normed_weights = map (\w -> w / total_weight) weights
+      let normed_weights = map (/ total_weight) weights
       indices <- replicateM k (logCategorical (V.fromList normed_weights))
       let new_weights = replicate k (total_weight / fromIntegral k)
       return $ zip (map (\i -> fst (particles !! i)) indices) new_weights
@@ -175,7 +176,7 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
       let qqd = Exp . primal . ln . qd
       v' <- qs
       return (v':v, w * (pp (v':v) / pp v) / qqd v')
-    step particles = do 
+    step particles = do
       particles <- resample particles
       mapM propagate particles
 
@@ -184,30 +185,30 @@ instance ADEV (ContT ForwardDouble) Sampler ForwardDouble PruningProgram where
       (p, p') = split dp
       run_    = do
         u <- uniform 0 1
-        let b = u > (1 - p)
+        let b = u > 1 - p
         if dp > 0 then
           return ([u], [1.0], if b then 0 else p'/(1-p))
         else
-          return ([u], [0.0], if b then -p'/p else 0)
-      trace_ [] = do 
+          return ([u], [0.0], if b then-p'/p else 0)
+      trace_ [] = do
         u <- uniform 0 1
-        return ([if u > (1 - p) then 1 else 0], [])
-      trace_ (u:us) = return ([if u > (1 - p) then 1 else 0], us)
+        return ([if u > 1 - p then 1 else 0], [])
+      trace_ (u:us) = return ([if u > 1 - p then 1 else 0], us)
       ret_   (t:ts) = (t == 1.0, ts) -- TODO: use t > 0.5 instead, for floating-point safety?
-  
+
   normal_pruned mu sig = PruningProgram run_ trace_ ret_
     where
       run_    = do
         u <- normal 0 1
         return ([u], [u], 0)
-      trace_ [] = do 
+      trace_ [] = do
         u <- normal 0 1
         return ([u], [])
       trace_ (u:us) = return ([u], us)
-      ret_   (t:ts) = ((bundle t 0) * sig + mu, ts)
+      ret_   (t:ts) = (bundle t 0 * sig + mu, ts)
 
   expect_pruned = expect . run_pruned
-  
+
   run_pruned pruning_prog = ContT $ \dloss -> do
     (val, val', weight) <- stochastic_derivative pruning_prog
     if weight == 0.0 then

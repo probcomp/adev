@@ -1,39 +1,30 @@
-{-# LANGUAGE FlexibleInstances, TypeFamilies, FlexibleContexts, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Numeric.ADEV.Reverse (
   ADEV(..)
 ) where
 
-import Numeric.ADEV.Class
+import Numeric.ADEV.Class ( ADEV(..) )
 import Numeric.ADEV.Interp()
 import Control.Monad.Bayes.Class (
-  MonadDistribution, 
-  uniform, 
-  uniformD,
-  logCategorical,
+  uniform,
   poisson,
   bernoulli,
   normal)
-import Control.Monad.Bayes.Sampler.Lazy (Sampler)
 import Control.Monad.Bayes.Sampler.Lazy.Coupled (coupled)
 import Control.Monad.Cont (ContT(..))
 
-import Control.Monad (replicateM, mapM)
 import Numeric.Log (Log(..))
-import qualified Numeric.Log as Log (sum)
-import Data.List (zipWith4)
-import qualified Data.Vector as V
-import Numeric.ADEV.StochasticAD (stochastic_derivative, PruningProgram(..))
-import Numeric.AD.Internal.Reverse
-import Numeric.AD.Mode
-import Numeric.AD.Jacobian
-import Numeric.AD.Mode.Reverse
-import Data.Reflection
-import Control.Monad.Bayes.Sampler.Lazy
+import Numeric.AD.Internal.Reverse ( primal, Reverse, Tape )
+import Numeric.AD.Mode ( Mode(auto) )
+import Numeric.AD.Jacobian ( Jacobian(lift2) )
+import Data.Reflection ( Reifies )
+import Control.Monad.Bayes.Sampler.Lazy ( SamplerT )
 
-instance (Reifies s Tape) => ADEV (ContT (Reverse s Double)) Sampler (Reverse s Double) PruningProgram where
+instance (Reifies s Tape) => ADEV (ContT (Reverse s Double)) SamplerT (Reverse s Double) where
 
-  sample = ContT $ \dloss -> do
+  unif = ContT $ \dloss -> do
     u <- uniform 0 1
     dloss (auto u)
 

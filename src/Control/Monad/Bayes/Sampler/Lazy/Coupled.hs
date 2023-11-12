@@ -9,8 +9,8 @@ import Control.Monad.Bayes.Sampler.Lazy
 -- supposed to be meaning-preserving.
 -- User-named choices are of course one way to do this;
 -- Wingate has something a little more automated. 
-coupled :: Sampler a -> Sampler b -> Sampler (a, b)
-coupled (Sampler s1) (Sampler s2) = Sampler $ \g -> (s1 g, s2 g)
+coupled :: SamplerT a -> SamplerT b -> SamplerT (a, b)
+coupled (SamplerT s1) (SamplerT s2) = SamplerT $ \g -> (s1 g, s2 g)
 
-get_seed :: Sampler Tree
-get_seed = Sampler $ \g -> g
+get_seed :: SamplerT Tree
+get_seed = SamplerT $ \g -> g

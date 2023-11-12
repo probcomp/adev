@@ -19,7 +19,7 @@ normalDensity mu sig x = Exp $ -log(sig) - log(2*pi) / 2 - ((realToFrac x)-mu)^2
 
 ys = [undefined, 1,2,3,4,5]
 
-l :: (MonadDistribution m, RealFloat r, Floating r, ADEV p m r s) => r -> m r
+l :: (MonadDistribution m, RealFloat r, Floating r, ADEV p m r) => r -> m r
 l theta = smc p q0 q f 2 1000
   where
     p xs = let xys = zip (map realToFrac xs) (reverse (take (length xs) ys)) in

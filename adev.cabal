@@ -46,7 +46,7 @@ library
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
   default-language: Haskell2010
 
 executable Figure2
@@ -63,7 +63,7 @@ executable Figure2
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
   default-language: Haskell2010
 
 executable ParticleFilterExample
@@ -80,7 +80,7 @@ executable ParticleFilterExample
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
   default-language: Haskell2010
 
 executable ReverseExample
@@ -97,7 +97,7 @@ executable ReverseExample
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
   default-language: Haskell2010
 
 executable StochasticADExample
@@ -114,7 +114,25 @@ executable StochasticADExample
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
+  default-language: Haskell2010
+
+executable Gen
+  main-is: Gen.hs
+  hs-source-dirs:
+      examples
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      ad ==4.5.2.*
+    , adev
+    , base >=4.7 && <5
+    , log-domain >=0.12 && <0.14
+    , monad-bayes >=1.1.0
+    , mtl ==2.2.2.*
+    , reflection >=2.1.6 && <3
+    , transformers ==0.5.6.2.*
+    , vector >=0.12.3.1 && <0.13.2
+    , containers
   default-language: Haskell2010
 
 test-suite adev-test
@@ -134,5 +152,5 @@ test-suite adev-test
     , mtl ==2.2.2.*
     , reflection >=2.1.6 && <3
     , transformers ==0.5.6.2.*
-    , vector >=0.12.3.1 && <0.12.4
+    , vector >=0.12.3.1 && <0.13.2
   default-language: Haskell2010

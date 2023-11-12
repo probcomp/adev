@@ -7,7 +7,7 @@ import Numeric.AD.Mode.Forward.Double (ForwardDouble)
 import Control.Monad.Bayes.Class (MonadDistribution)
 import Control.Monad.Bayes.Sampler.Lazy (sampler)
 
-l :: ADEV p m r s => r -> m r
+l :: ADEV p m r => r -> m r
 l theta = expect $ do
     b <- flip_reinforce theta
     if b then
