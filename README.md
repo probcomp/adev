@@ -4,14 +4,14 @@ This repository contains the Haskell prototype that accompanies the paper "[ADEV
 
 ## Overview
 
-![Overview of ADEV](./figures/adev-diagram.png)
+![Overview of ADEV](https://github.com/probcomp/adev/blob/main/figures/adev-diagram.png)
 ADEV is a method of automatically differentiating loss functions defined as *expected values* of probabilistic processes. ADEV users define a _probabilistic program_ $t$, which, given a parameter of type $\mathbb{R}$ (or a subtype), outputs a value of type $\widetilde{\mathbb{R}}$,
 which represents probabilistic estimators of losses. We translate $t$ to a new probabilistic program $s$,
 whose expected return value is the derivative of $t$’s expected return value. Running $s$ yields provably unbiased
 estimates $x_i$ of the loss's derivative, which can be used in the inner loop of stochastic optimization algorithms like ADAM or stochastic gradient descent.
 
 ADEV goes beyond standard AD by explicitly supporting probabilistic primitives, like `flip`, for flipping a coin. If these probabilistic constructs are ignored, standard AD may produce incorrect results, as this figure from our paper illustrates:
-![Optimizing an example loss function using ADEV](./figures/example.png)
+![Optimizing an example loss function using ADEV](https://github.com/probcomp/adev/blob/main/figures/example.png)
 In this example, standard AD
 fails to account for the parameter $\theta$'s effect on the *probability* of entering each branch. ADEV, by contrast, correctly accounts
 for the probabilistic effects, generating similar code to what a practitioner might hand-derive. Correct
